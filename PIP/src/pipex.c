@@ -1,23 +1,46 @@
 #include "../inc/pipex.h"
 
+void free_arr(char **words)
+{
+	int	i;
+
+	i = 0;
+	while (words[i])
+		free(words[i++]);
+	free(words);
+}
+
 void execute(char *cmd, char *envp[])
 {
 	char *main_path;
 	char **possible_path;
 	char **commands;
 	char *file;
-	while (!(main_path = ft_strstr("PATH", *envp)))
+	int i;
+
+	i = 0;
+	while (!(main_path = ft_strstr(*envp, "PATH")))
 		envp++;
 	possible_path = ft_split(main_path + 5, ':');
 	commands = ft_split(cmd, ' ');
-	while (!access((file = ft_strjoin(*possible_path++, *commands)), X_OK))
+	while (possible_path[i])
 	{
-		execve(file, commands, envp);
+		file = ft_strjoin(possible_path[i++], "/");
+		char	*temp;
+		temp = file;
+		file = ft_strjoin(file, *commands);
+		free(temp);
+		if (!access(file, X_OK))
+			execve(file, commands, envp);
 		free(file);
 	}
-	free(possible_path);
-	free(commands);
-	// error
+
+	//free_arr(possible_path);
+	ft_putstr_fd("command not found: ", STDERR_FILENO);
+	ft_putstr_fd(commands[0], STDERR_FILENO);
+	ft_putstr_fd("\n", STDERR_FILENO);
+	//free_arr(commands);
+	exit(EXIT_FAILURE);
 }
 
 void	pipex(int fdin, int fdout, char *argv[], char *envp[])
@@ -36,20 +59,20 @@ void	pipex(int fdin, int fdout, char *argv[], char *envp[])
 		close(fd[0]);
 		close(fdin);
 		execute(argv[2], envp);
-		waitpid(pid1, NULL, 0);
+		
 	}
 	else if (pid1 > 0)
 	{
 		// put this in a func
 		dup2(fd[0], STDIN_FILENO);
 		dup2(fdout, STDOUT_FILENO);
-		close(fdout);
 		close(fd[1]);
+		close(fdout);
 		execute(argv[3], envp);
 	}
 	else if (pid1 == -1)
 		return (perror("Fork:"));
-	
+	waitpid(pid1, NULL, 0);
 }
 
 int main(int argc, char *argv[], char *envp[])
@@ -70,5 +93,7 @@ int main(int argc, char *argv[], char *envp[])
 		exit(EXIT_FAILURE);
 	}
     pipex(f1, f2, argv, envp);
+	close(f1);
+	close(f2);
     return (0);
 }
