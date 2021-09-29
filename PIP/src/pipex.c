@@ -13,7 +13,7 @@ char	**get_path(char *envp[])
 void	execute(char *cmd, char *envp[])
 {
 	char	**commands;
-	char	*paths;
+	char	**paths;
 	char	*file;
 	int		i;
 
